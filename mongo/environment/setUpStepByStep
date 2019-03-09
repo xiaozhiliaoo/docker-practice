@@ -1,0 +1,112 @@
+单机创建分片副本集
+
+1  创建分片副本集
+
+mkdir -p data/rs-a-1 data/rs-a-2 data/rs-a-3 data/rs-b-1 data/rs-b-2 data/rs-b-3
+
+mongod --shardsvr --replSet shard-a --dbpath data/rs-a-1 --port 30000 --logpath data/rs-a-1.log --fork
+mongod --shardsvr --replSet shard-a --dbpath data/rs-a-2 --port 30001 --logpath data/rs-a-2.log --fork
+mongod --shardsvr --replSet shard-a --dbpath data/rs-a-3 --port 30002 --logpath data/rs-a-3.log --fork
+mongod --shardsvr --replSet shard-b --dbpath data/rs-b-1 --port 30100 --logpath data/rs-b-1.log --fork
+mongod --shardsvr --replSet shard-b --dbpath data/rs-b-2 --port 30101 --logpath data/rs-b-2.log --fork
+mongod --shardsvr --replSet shard-b --dbpath data/rs-b-3 --port 30102 --logpath data/rs-b-3.log --fork
+
+
+rs.initiate(
+   {
+      _id: "shard-a",
+      version: 1,
+      members: [
+         { _id: 0, host : "localhost:30000" },
+         { _id: 1, host : "localhost:30001" },
+         { _id: 2, host : "localhost:30002",arbiterOnly:true}
+      ]
+   }
+)
+
+
+rs.initiate(
+   {
+      _id: "shard-b",
+      version: 1,
+      members: [
+         { _id: 0, host : "localhost:30100" },
+         { _id: 1, host : "localhost:30101" },
+         { _id: 2, host : "localhost:30102",arbiterOnly:true}
+      ]
+   }
+)
+
+2  创建config-server
+
+mkdir -p data/config-1 data/config-2 data/config-3
+
+
+mongod --configsvr --replSet conf-serv --dbpath data/config-1 --logpath data/config-1.log --logappend --fork --port 27000
+mongod --configsvr --replSet conf-serv --dbpath data/config-2 --logpath data/config-2.log --logappend --fork --port 27100
+mongod --configsvr --replSet conf-serv --dbpath data/config-3 --logpath data/config-3.log --logappend --fork --port 27200
+
+
+rs.initiate(
+  {
+	_id: "conf-serv",
+	configsvr: true,
+	members: [
+	    { _id: 0, host : "localhost:27000" },
+        { _id: 1, host : "localhost:27100" },
+        { _id: 2, host : "localhost:27200"}
+	]
+  }
+)
+
+3 创建路由器
+
+mongos --configdb conf-serv/localhost:27000,localhost:27100,localhost:27200 --logpath data/mongos.log --fork --port 40000
+
+sh.addShard("shard-a/localhost:30000,localhost:30001")
+sh.addShard("shard-b/localhost:30100,localhost:30101")
+sh.enableSharding("mydb")   (shard the collections)   # 这种情况数据分布式在一个primary shard中，而不是整个shard中？？？
+sh.shardCollection("mydb.xxx",{username:1, _id:1})  (redistribute documents data)
+
+sh.status()
+
+primary shard
+
+A database can have a mixture of sharded and unsharded collections.
+ Sharded collections are partitioned and distributed across the shards
+ in the cluster. Unsharded collections are stored on a primary shard.
+ Each database has its own primary shard.
+
+ The mongos selects the primary shard when creating a new database by picking the
+  shard in the cluster that has the least amount of data.
+
+Once you enable sharding for a database, MongoDB assigns a primary
+shard for that database where MongoDB stores all data in that database.
+
+You must connect to a mongos router to interact with any collection in the sharded
+cluster. This includes sharded and unsharded collections. Clients should never
+connect to a single shard in order to perform read or write operations.
+
+how-does-mongo-select-primary-shard-in-cluster？？？
+
+Enable Sharding for a Database
+To proceed, you must be connected to a mongos associated to the target sharded cluster.
+
+Before you can shard a collection, you must enable sharding for the collection’s database.
+ Enabling sharding for a database does not redistribute data but make it possible to shard
+ the collections in that database.
+
+Once you enable sharding for a database, MongoDB assigns a primary shard for that database
+ where MongoDB stores all data in that database.
+
+ primary shard
+ The shard that holds all the un-sharded collections. See Primary Shard.
+
+一个mongod服务器，有多个数据库，
+数据库 db      - 数据库 db
+集合collection - 表 table
+文档document - 记录 row
+
+
+
+

@@ -1,0 +1,59 @@
+version: '3'
+services:
+    mongo-cnf-2:
+        container_name: "mongo-cnf-2"
+        image: lili/mongo:1.0
+        ports:
+            - "37019:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet cnf-serv --configsvr --port 27017 --dbpath /home/admin/data/config --logpath /home/admin/logs/config.log --bind_ip 0.0.0.0
+        volumes:
+             - "/tmp/docker/data/mongo/37019:/home/admin/data/config"
+             - "/tmp/docker/logs/mongo/37019:/home/admin/logs"
+        restart: always
+
+    mongo-cnf-3:
+        container_name: "mongo-cnf-3"
+        image: lili/mongo:1.0
+        ports:
+            - "27019:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet cnf-serv --configsvr --port 27017 --dbpath /home/admin/data/config --logpath /home/admin/logs/config.log --bind_ip 0.0.0.0
+        volumes:
+             - "/tmp/docker/data/mongo/27019:/home/admin/data/config"
+             - "/tmp/docker/logs/mongo/27019:/home/admin/logs"
+        restart: always
+
+    mongo-cnf-1:
+        container_name: "mongo-cnf-1"
+        image: lili/mongo:1.0
+        ports:
+            - "47019:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet cnf-serv --configsvr --port 27017 --dbpath /home/admin/data/config --logpath /home/admin/logs/config.log --bind_ip 0.0.0.0
+        volumes:
+             - "/tmp/docker/data/mongo/47019:/home/admin/data/config"
+             - "/tmp/docker/logs/mongo/47019:/home/admin/logs"
+        links:
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+        restart: always
+    mongo-cnf-setup:
+        container_name: "mongo-cnf-setup"
+        image: lili/mongo:1.0
+        depends_on:
+            - "mongo-cnf-1"
+            - "mongo-cnf-2"
+            - "mongo-cnf-3"
+        links:
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+        environment:
+            - MONGO1=mongo-cnf-1
+            - MONGO2=mongo-cnf-2
+            - MONGO3=mongo-cnf-3
+            - RS=cnf-serv
+            - PORT=27017
+        entrypoint: [ "/home/admin/app/mongo/setup-cnf.sh" ]
+networks:
+    default:
+        external:
+            name: lili-bridge-network

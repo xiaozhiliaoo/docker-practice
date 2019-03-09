@@ -1,0 +1,86 @@
+version: '3'
+services:
+    mongo-router-1:
+        container_name: "mongo-router-1"
+        image: lili/mongo:1.0
+        ports:
+            - "27017:27017"
+        depends_on:
+            - "mongo-rs1-setup"
+            - "mongo-cnf-setup"
+        external_links:      # 连接不同compose文件中定义的容器：
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+            - "/tmp/docker/logs/mongo/27017:/home/admin/logs"
+        command: /home/admin/app/mongo/mongodb/bin/mongos --configdb cnf-serv/mongo-cnf-1:27017,mongo-cnf-2:27017,mongo-cnf-3:27017 --port 27017 --logpath /home/admin/logs/mongos.log --bind_ip 0.0.0.0
+        restart: always  # https://docs.docker.com/config/containers/start-containers-automatically/
+    mongo-router-2:
+        container_name: "mongo-router-2"
+        image: lili/mongo:1.0
+        ports:
+            - "37017:27017"
+        depends_on:
+            - "mongo-rs1-setup"
+            - "mongo-cnf-setup"
+        external_links:
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+            - "/tmp/docker/logs/mongo/37017:/home/admin/logs"
+        command: /home/admin/app/mongo/mongodb/bin/mongos --configdb cnf-serv/mongo-cnf-1:27017,mongo-cnf-2:27017,mongo-cnf-3:27017 --port 27017 --logpath /home/admin/logs/mongos.log --bind_ip 0.0.0.0
+        restart: always
+    mongo-router-3:
+        container_name: "mongo-router-3"
+        image: lili/mongo:1.0
+        ports:
+            - "47017:27017"
+        depends_on:
+            - "mongo-rs1-setup"
+            - "mongo-cnf-setup"
+        external_links:
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+            - "/tmp/docker/logs/mongo/47017:/home/admin/logs"
+        command: /home/admin/app/mongo/mongodb/bin/mongos --configdb cnf-serv/mongo-cnf-1:27017,mongo-cnf-2:27017,mongo-cnf-3:27017 --port 27017 --logpath /home/admin/logs/mongos.log --bind_ip 0.0.0.0
+        restart: always
+    mongo-shard-setup:
+        container_name: "mongo-shard-setup"
+        image: lili/mongo:1.0
+        depends_on:
+            - "mongo-router-1"
+            - "mongo-router-2"
+            - "mongo-router-3"
+        links:
+            - mongo-router-1:mongo-router-1
+            - mongo-router-2:mongo-router-2
+            - mongo-router-3:mongo-router-3
+        environment:
+            - MONGOS=mongo-router-1
+            - MONGO11=mongo-1-1
+            - MONGO12=mongo-1-2
+            - MONGO13=mongo-1-3
+            - RS1=mydb
+            - PORT=27017
+            - PORT1=27017
+            - PORT2=27017
+            - PORT3=27017
+        entrypoint: [ "/home/admin/app/mongo/init-shard.sh" ]
+        restart: on-failure:20
+networks:
+    default:
+        external:
+            name: lili-bridge-network

@@ -1,0 +1,56 @@
+version: '3'
+services:
+    mongo-1-2:
+        container_name: "mongo-1-2"
+        image: lili/mongo:1.0
+        ports:
+            - "37018:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet mydb --shardsvr --port 27017 -dbpath /home/admin/data/rs --logpath /home/admin/logs/rs.log --logappend --bind_ip 0.0.0.0
+        volumes:
+           - "/tmp/docker/data/mongo/37018:/home/admin/data/rs"
+           - "/tmp/docker/logs/mongo/37018:/home/admin/logs"
+        restart: always
+    mongo-1-3:
+        container_name: "mongo-1-3"
+        image: lili/mongo:1.0
+        ports:
+            - "27018:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet mydb --shardsvr --port 27017 -dbpath /home/admin/data/rs --logpath /home/admin/logs/rs.log --logappend --bind_ip 0.0.0.0
+        volumes:
+             - "/tmp/docker/data/mongo/27018:/home/admin/data/rs"
+             - "/tmp/docker/logs/mongo/27018:/home/admin/logs"
+        restart: always
+    mongo-1-1:
+        container_name: "mongo-1-1"
+        image: lili/mongo:1.0
+        ports:
+            - "47018:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet mydb --shardsvr --port 27017 -dbpath /home/admin/data/rs --logpath /home/admin/logs/rs.log --logappend --bind_ip 0.0.0.0
+        links:
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+             - "/tmp/docker/data/mongo/47018:/home/admin/data/rs"
+             - "/tmp/docker/logs/mongo/47018:/home/admin/logs"
+        restart: always
+    mongo-rs1-setup:  # 设置副本集的容器，用完即亡
+        container_name: "mongo-rs1-setup"
+        image: lili/mongo:1.0
+        depends_on:
+            - "mongo-1-1"
+            - "mongo-1-2"
+            - "mongo-1-3"
+        links:
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        environment:
+            - MONGO1=mongo-1-1
+            - MONGO2=mongo-1-2
+            - MONGO3=mongo-1-3
+            - RS=mydb
+        entrypoint: [ "/home/admin/app/mongo/setup-rs.sh" ]
+networks:
+    default:
+        external:
+            name: lili-bridge-network
