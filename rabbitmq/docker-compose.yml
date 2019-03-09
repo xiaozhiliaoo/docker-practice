@@ -1,0 +1,56 @@
+version: '3'
+services:
+  rabbit1:
+    image: lili/rabbitmq:1.0
+    restart: always
+    #不写hostname会被随机分配
+    hostname: rabbit1
+    container_name: rabbit1
+    # environment的值会在env中显示
+    environment:
+      - RABBITMQ_DEFAULT_USER=lili
+      - RABBITMQ_DEFAULT_PASS=lili
+    volumes:
+      - "/tmp/docker/data/rabbitmq/5672:/var/lib/rabbitmq"
+      - "/tmp/docker/logs/rabbitmq/5672:/var/log/rabbitmq"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  rabbit2:
+    image: lili/rabbitmq:1.0
+    restart: always
+    hostname: rabbit2
+    container_name: rabbit2
+    # links 会在rabbit2的机器上添加rabbit1的hosts
+    links:
+      - rabbit1
+    environment:
+      - CLUSTER_WITH=rabbit1
+      #- ENABLE_RAM=true
+    volumes:
+        - "/tmp/docker/data/rabbitmq/5673:/var/lib/rabbitmq"
+        - "/tmp/docker/logs/rabbitmq/5673:/var/log/rabbitmq"
+    ports:
+      - "5673:5673"
+      - "15673:15673"
+  rabbit3:
+    image: lili/rabbitmq:1.0
+    restart: always
+    hostname: rabbit3
+    container_name: rabbit3
+    # links 会在rabbit3的机器上添加rabbit1,rabbit2的hosts
+    links:
+      - rabbit1
+      - rabbit2
+    environment:
+      - CLUSTER_WITH=rabbit1
+    volumes:
+          - "/tmp/docker/data/rabbitmq/5674:/var/lib/rabbitmq"
+          - "/tmp/docker/logs/rabbitmq/5674:/var/log/rabbitmq"
+    ports:
+      - "5674:5674"
+      - "15674:15674"
+networks:
+  default:
+    external:
+      name: lili-bridge-network
