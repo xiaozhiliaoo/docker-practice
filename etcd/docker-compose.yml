@@ -1,0 +1,84 @@
+version: '3'
+services:
+  etcd0:
+    image: lili/etcd:1.0
+    ports:
+      - "2379:2379"
+    container_name: etcd0
+    volumes:
+      - "/tmp/docker/data/etcd/2379:/home/admin/data/etcd"
+    environment:
+      - ETCDCTL_API=3
+    restart: always
+    command:
+      - /usr/bin/etcd
+      - -name
+      - etcd0
+      - --data-dir
+      - /home/admin/data/etcd/data
+      - -advertise-client-urls
+      - http://etcd0:2379
+      - -listen-client-urls
+      - http://0.0.0.0:2379
+      - -initial-advertise-peer-urls
+      - http://etcd0:2380
+      - -listen-peer-urls
+      - http://0.0.0.0:2380
+      - -initial-cluster
+      - etcd0=http://etcd0:2380,etcd1=http://etcd1:2370,etcd2=http://etcd2:2360
+  etcd1:
+    image: lili/etcd:1.0
+    ports:
+      - "2369:2369"
+    container_name: etcd1
+    volumes:
+      - "/tmp/docker/data/etcd/2369:/home/admin/data/etcd"
+    environment:
+      - ETCDCTL_API=3
+    restart: always
+    command:
+      - /usr/bin/etcd
+      - -name
+      - etcd1
+      - --data-dir
+      - /home/admin/data/etcd/data
+      - -advertise-client-urls
+      - http://etcd1:2369
+      - -listen-client-urls
+      - http://0.0.0.0:2369
+      - -initial-advertise-peer-urls
+      - http://etcd1:2370
+      - -listen-peer-urls
+      - http://0.0.0.0:2370
+      - -initial-cluster
+      - etcd0=http://etcd0:2380,etcd1=http://etcd1:2370,etcd2=http://etcd2:2360
+  etcd2:
+    image: lili/etcd:1.0
+    ports:
+      - "2359:2359"
+    container_name: etcd2
+    volumes:
+      - "/tmp/docker/data/etcd/2359:/home/admin/data/etcd"
+    environment:
+      - ETCDCTL_API=3
+    restart: always
+    command:
+      - /usr/bin/etcd
+      - -name
+      - etcd2
+      - --data-dir
+      - /home/admin/data/etcd/data
+      - -advertise-client-urls
+      - http://etcd2:2359
+      - -listen-client-urls
+      - http://0.0.0.0:2359
+      - -initial-advertise-peer-urls
+      - http://etcd2:2360
+      - -listen-peer-urls
+      - http://0.0.0.0:2360
+      - -initial-cluster
+      - etcd0=http://etcd0:2380,etcd1=http://etcd1:2370,etcd2=http://etcd2:2360
+networks:
+  default:
+    external:
+      name: lili-bridge-network
