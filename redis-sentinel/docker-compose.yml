@@ -1,0 +1,99 @@
+version: '3'
+services:
+    redis-master:
+        image: lili/redis:1.0
+        restart: always
+        container_name: redis-master
+        ports:
+            - "6379:6379"
+        volumes:
+            - "/tmp/docker/data/redis/6379:/home/admin/data/redis/data"
+            - "/tmp/docker/logs/redis/6379:/home/admin/logs"
+        environment:
+            MASTER: master
+            PORT: 6379
+    redis-slave1:
+        image: lili/redis:1.0
+        restart: always
+        container_name: redis-slave1
+        ports:
+            - "6389:6389"
+        volumes:
+            - "/tmp/docker/data/redis/6389:/home/admin/data/redis/data"
+            - "/tmp/docker/logs/redis/6389:/home/admin/logs"
+        links:
+            - redis-master:redis-master
+        environment:
+            SLAVE: slave
+            SLAVE_OF: redis-master 6379
+            PORT: 6389
+    redis-slave2:
+        image: lili/redis:1.0
+        restart: always
+        container_name: redis-slave2
+        ports:
+              - "6399:6399"
+        volumes:
+              - "/tmp/docker/data/redis/6399:/home/admin/data/redis/data"
+              - "/tmp/docker/logs/redis/6399:/home/admin/logs"
+        links:
+              - redis-master:redis-master
+        environment:
+            SLAVE: slave
+            SLAVE_OF: redis-master 6379
+            PORT: 6399
+    sentinel1:
+            image: lili/redis:1.0
+            restart: always
+            container_name: sentinel1
+            ports:
+                 - "26379:26379"
+            volumes:
+                 - "/tmp/docker/data/redis/26379:/home/admin/data/redis/data"
+                 - "/tmp/docker/logs/redis/26379:/home/admin/logs"
+            environment:
+                SENTINEL: sentinel
+                MASTER_INFO: redis-master 6379
+                PORT: 26379
+            links:
+              - redis-master:redis-master
+              - redis-slave1
+              - redis-slave2
+    sentinel2:
+        image: lili/redis:1.0
+        restart: always
+        container_name: sentinel2
+        ports:
+               - "26389:26389"
+        volumes:
+              - "/tmp/docker/data/redis/26389:/home/admin/data/redis/data"
+              - "/tmp/docker/logs/redis/26389:/home/admin/logs"
+        environment:
+            SENTINEL: sentinel
+            MASTER_INFO: redis-master 6379
+            PORT: 26389
+        links:
+          - redis-master:redis-master
+          - redis-slave1
+          - redis-slave2
+    sentinel3:
+        image: lili/redis:1.0
+        restart: always
+        container_name: sentinel3
+        ports:
+            - "26399:26399"
+        volumes:
+            - "/tmp/docker/data/redis/26399:/home/admin/data/redis/data"
+            - "/tmp/docker/logs/redis/26399:/home/admin/logs"
+        environment:
+            SENTINEL: sentinel
+            MASTER_INFO: redis-master 6379
+            PORT: 26399
+        links:
+          - redis-master:redis-master
+          - redis-slave1
+          - redis-slave2
+networks:
+    default:
+        external:
+          name: lili-bridge-network

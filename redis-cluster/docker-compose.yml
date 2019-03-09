@@ -1,0 +1,39 @@
+version: '3'
+services:
+  redis1:
+    image: lili/redis-cluster:1.0
+    restart: always
+    container_name: redis1
+    ports:
+      - "6379:6379"
+    volumes:
+      - "/tmp/docker/data/redis1:/home/admin/data"
+      - "/tmp/docker/logs/redis1:/home/admin/logs"
+    environment:
+      CLUSTER_INFO:
+  redis2:
+    depends_on:
+      - redis1
+    image: lili/redis-cluster:1.0
+    restart: always
+    container_name: redis2
+    ports:
+      - "6380:6379"
+    volumes:
+      - "/tmp/docker/data/redis2:/home/admin/data"
+      - "/tmp/docker/logs/redis2:/home/admin/logs"
+    environment:
+      CLUSTER_INFO: slaveof redis1 6379
+  redis3:
+    depends_on:
+      - redis1
+    image: lili/redis-cluster:1.0
+    restart: always
+    container_name: redis3
+    ports:
+      - "6381:6379"
+    volumes:
+      - "/tmp/docker/data/redis3:/home/admin/data"
+      - "/tmp/docker/logs/redis3:/home/admin/logs"
+    environment:
+      CLUSTER_INFO: slaveof redis1 6379
