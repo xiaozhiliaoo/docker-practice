@@ -1,0 +1,57 @@
+version: '3'
+services:
+  tiger1:
+    image: lili/tiger:1.0
+    restart: always
+    ports:
+      - "9666:9666"
+    container_name: tiger1
+    environment:
+        - ETCD_ENDPOINTS=http://etcd0:2379,etcd1:2369,etcd2:2359
+        - RABBITMQ_ENDPOINTS=rabbit1:5672,rabbit2:5673,rabbit3:5674
+        - REDIS_ENDPOINTS=sentinel1:26379,sentinel2:26389,sentinel3:26399
+        - MONGODB_ENDPOINTS=mongodb://mongo-router-1:27017,mongo-router-2:27017,mongo-router-3:27017
+        - REDIS_PORT=23679
+        - NODE_NAME=tiger1
+        - NODE_PORT=9666
+        - VIP_SERVER_LIST=http://172.28.14.175:80
+    volumes:
+      - "/home/admin/logs/tiger/9666:/home/admin/app/tiger/logs"
+  tiger2:
+    image: lili/tiger:1.0
+    restart: always
+    ports:
+      - "9667:9667"
+    container_name: tiger2
+    environment:
+        - ETCD_ENDPOINTS=http://etcd0:2379,etcd1:2369,etcd2:2359
+        - RABBITMQ_ENDPOINTS=rabbit1:5672,rabbit2:5673,rabbit3:5674
+        - REDIS_ENDPOINTS=sentinel1:26379,sentinel2:26389,sentinel3:26399
+        - MONGODB_ENDPOINTS=mongodb://mongo-router-1:27017,mongo-router-2:27017,mongo-router-3:27017
+        - REDIS_PORT=23679
+        - NODE_NAME=tiger2
+        - NODE_PORT=9667
+        - VIP_SERVER_LIST=http://172.28.14.175:80
+    volumes:
+      - "/home/admin/logs/tiger/9667:/home/admin/app/tiger/logs"
+  tiger3:
+    image: lili/tiger:1.0
+    restart: always
+    ports:
+      - "9668:9668"
+    container_name: tiger3
+    environment:
+       - ETCD_ENDPOINTS=http://etcd0:2379,etcd1:2369,etcd2:2359
+       - RABBITMQ_ENDPOINTS=rabbit1:5672,rabbit2:5673,rabbit3:5674
+       - REDIS_ENDPOINTS=sentinel1:26379,sentinel2:26389,sentinel3:26399
+       - MONGODB_ENDPOINTS=mongodb://mongo-router-1:27017,mongo-router-2:27017,mongo-router-3:27017
+       - REDIS_PORT=23679
+       - NODE_NAME=tiger3
+       - NODE_PORT=9668
+       - VIP_SERVER_LIST=http://172.28.14.175:80
+    volumes:
+      - "/home/admin/logs/tiger/9668:/home/admin/app/tiger/logs"
+networks:
+  default:
+    external:
+      name: lili-bridge-network

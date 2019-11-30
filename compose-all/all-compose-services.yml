@@ -1,0 +1,459 @@
+version: '3'
+services:
+    mongo-cnf-2:
+        container_name: "mongo-cnf-2"
+        image: lili/mongo:1.0
+        ports:
+            - "37019:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet cnf-serv --configsvr --port 27017 --dbpath /home/admin/data/config --logpath /home/admin/logs/config.log --bind_ip 0.0.0.0
+        volumes:
+             - "/home/admin/data/mongo/37019:/home/admin/data/config"
+             - "/home/admin/logs/mongo/37019:/home/admin/logs"
+        restart: always
+    mongo-cnf-3:
+        container_name: "mongo-cnf-3"
+        image: lili/mongo:1.0
+        ports:
+            - "27019:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet cnf-serv --configsvr --port 27017 --dbpath /home/admin/data/config --logpath /home/admin/logs/config.log --bind_ip 0.0.0.0
+        volumes:
+             - "/home/admin/data/mongo/27019:/home/admin/data/config"
+             - "/home/admin/logs/mongo/27019:/home/admin/logs"
+        restart: always
+    mongo-cnf-1:
+        container_name: "mongo-cnf-1"
+        image: lili/mongo:1.0
+        ports:
+            - "47019:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet cnf-serv --configsvr --port 27017 --dbpath /home/admin/data/config --logpath /home/admin/logs/config.log --bind_ip 0.0.0.0
+        volumes:
+             - "/home/admin/data/mongo/47019:/home/admin/data/config"
+             - "/home/admin/logs/mongo/47019:/home/admin/logs"
+        links:
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+        restart: always
+    mongo-cnf-setup:
+        container_name: "mongo-cnf-setup"
+        image: lili/mongo:1.0
+        depends_on:
+            - "mongo-cnf-1"
+            - "mongo-cnf-2"
+            - "mongo-cnf-3"
+        links:
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+        environment:
+            - MONGO1=mongo-cnf-1
+            - MONGO2=mongo-cnf-2
+            - MONGO3=mongo-cnf-3
+            - RS=cnf-serv
+            - PORT=27017
+        entrypoint: [ "/home/admin/app/mongo/setup-cnf.sh" ]
+    mongo-1-2:
+        container_name: "mongo-1-2"
+        image: lili/mongo:1.0
+        ports:
+            - "37018:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet mydb --shardsvr --port 27017 -dbpath /home/admin/data/rs --logpath /home/admin/logs/rs.log --logappend --bind_ip 0.0.0.0
+        volumes:
+           - "/home/admin/data/mongo/37018:/home/admin/data/rs"
+           - "/home/admin/logs/mongo/37018:/home/admin/logs"
+        restart: always
+    mongo-1-3:
+        container_name: "mongo-1-3"
+        image: lili/mongo:1.0
+        ports:
+            - "27018:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet mydb --shardsvr --port 27017 -dbpath /home/admin/data/rs --logpath /home/admin/logs/rs.log --logappend --bind_ip 0.0.0.0
+        volumes:
+             - "/home/admin/data/mongo/27018:/home/admin/data/rs"
+             - "/home/admin/logs/mongo/27018:/home/admin/logs"
+        restart: always
+    mongo-1-1:
+        container_name: "mongo-1-1"
+        image: lili/mongo:1.0
+        ports:
+            - "47018:27017"
+        command: /home/admin/app/mongo/mongodb/bin/mongod --replSet mydb --shardsvr --port 27017 -dbpath /home/admin/data/rs --logpath /home/admin/logs/rs.log --logappend --bind_ip 0.0.0.0
+        links:
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+             - "/home/admin/data/mongo/47018:/home/admin/data/rs"
+             - "/home/admin/logs/mongo/47018:/home/admin/logs"
+        restart: always
+    mongo-rs1-setup:  # 设置副本集的容器，用完即亡
+        container_name: "mongo-rs1-setup"
+        image: lili/mongo:1.0
+        depends_on:
+            - "mongo-1-1"
+            - "mongo-1-2"
+            - "mongo-1-3"
+        links:
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        environment:
+            - MONGO1=mongo-1-1
+            - MONGO2=mongo-1-2
+            - MONGO3=mongo-1-3
+            - RS=mydb
+        entrypoint: [ "/home/admin/app/mongo/setup-rs.sh" ]
+    mongo-router-1:
+        container_name: "mongo-router-1"
+        image: lili/mongo:1.0
+        ports:
+            - "27017:27017"
+        depends_on:
+            - "mongo-rs1-setup"
+            - "mongo-cnf-setup"
+        links:      # 连接不同compose文件中定义的容器：
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+            - "/home/admin/logs/mongo/27017:/home/admin/logs"
+        command: /home/admin/app/mongo/mongodb/bin/mongos --configdb cnf-serv/mongo-cnf-1:27017,mongo-cnf-2:27017,mongo-cnf-3:27017 --port 27017 --logpath /home/admin/logs/mongos.log --bind_ip 0.0.0.0
+        restart: always  # https://docs.docker.com/config/containers/start-containers-automatically/
+    mongo-router-2:
+        container_name: "mongo-router-2"
+        image: lili/mongo:1.0
+        ports:
+            - "37017:27017"
+        depends_on:
+            - "mongo-rs1-setup"
+            - "mongo-cnf-setup"
+        links:
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+            - "/home/admin/logs/mongo/37017:/home/admin/logs"
+        command: /home/admin/app/mongo/mongodb/bin/mongos --configdb cnf-serv/mongo-cnf-1:27017,mongo-cnf-2:27017,mongo-cnf-3:27017 --port 27017 --logpath /home/admin/logs/mongos.log --bind_ip 0.0.0.0
+        restart: always
+    mongo-router-3:
+        container_name: "mongo-router-3"
+        image: lili/mongo:1.0
+        ports:
+            - "47017:27017"
+        depends_on:
+            - "mongo-rs1-setup"
+            - "mongo-cnf-setup"
+        links:
+            - mongo-cnf-1:mongo-cnf-1
+            - mongo-cnf-2:mongo-cnf-2
+            - mongo-cnf-3:mongo-cnf-3
+            - mongo-1-1:mongo-1-1
+            - mongo-1-2:mongo-1-2
+            - mongo-1-3:mongo-1-3
+        volumes:
+            - "/home/admin/logs/mongo/47017:/home/admin/logs"
+        command: /home/admin/app/mongo/mongodb/bin/mongos --configdb cnf-serv/mongo-cnf-1:27017,mongo-cnf-2:27017,mongo-cnf-3:27017 --port 27017 --logpath /home/admin/logs/mongos.log --bind_ip 0.0.0.0
+        restart: always
+    mongo-shard-setup:
+        container_name: "mongo-shard-setup"
+        image: lili/mongo:1.0
+        depends_on:
+            - "mongo-router-1"
+            - "mongo-router-2"
+            - "mongo-router-3"
+        links:
+            - mongo-router-1:mongo-router-1
+            - mongo-router-2:mongo-router-2
+            - mongo-router-3:mongo-router-3
+        environment:
+            - MONGOS=mongo-router-1
+            - MONGO11=mongo-1-1
+            - MONGO12=mongo-1-2
+            - MONGO13=mongo-1-3
+            - RS1=mydb
+            - PORT=27017
+            - PORT1=27017
+            - PORT2=27017
+            - PORT3=27017
+        entrypoint: [ "/home/admin/app/mongo/init-shard.sh" ]
+        restart: on-failure:20
+    rabbit1:
+        image: lili/rabbitmq:1.0
+        restart: always
+        #不写hostname会被随机分配
+        hostname: rabbit1
+        container_name: rabbit1
+        # environment的值会在env中显示
+        environment:
+          - RABBITMQ_DEFAULT_USER=lili
+          - RABBITMQ_DEFAULT_PASS=lili
+        volumes:
+          - "/home/admin/data/rabbitmq/5672:/var/lib/rabbitmq"
+          - "/home/admin/logs/rabbitmq/5672:/var/log/rabbitmq"
+        ports:
+          - "5672:5672"
+          - "15672:15672"
+    rabbit2:
+        image: lili/rabbitmq:1.0
+        restart: always
+        hostname: rabbit2
+        container_name: rabbit2
+        # links 会在rabbit2的机器上添加rabbit1的hosts
+        links:
+          - rabbit1
+        environment:
+          - CLUSTER_WITH=rabbit1
+          #- ENABLE_RAM=true
+        volumes:
+            - "/home/admin/data/rabbitmq/5673:/var/lib/rabbitmq"
+            - "/home/admin/logs/rabbitmq/5673:/var/log/rabbitmq"
+        ports:
+          - "5673:5673"
+          - "15673:15673"
+    rabbit3:
+        image: lili/rabbitmq:1.0
+        restart: always
+        hostname: rabbit3
+        container_name: rabbit3
+        # links 会在rabbit3的机器上添加rabbit1,rabbit2的hosts
+        links:
+          - rabbit1
+          - rabbit2
+        environment:
+          - CLUSTER_WITH=rabbit1
+        volumes:
+          - "/home/admin/data/rabbitmq/5674:/var/lib/rabbitmq"
+          - "/home/admin/logs/rabbitmq/5674:/var/log/rabbitmq"
+        ports:
+          - "5674:5674"
+          - "15674:15674"
+    redis-master:
+          image: lili/redis:1.0
+          restart: always
+          container_name: redis-master
+          ports:
+              - "6379:6379"
+          volumes:
+              - "/home/admin/data/redis/6379:/home/admin/data/redis/data"
+              - "/home/admin/logs/redis/6379:/home/admin/logs"
+          environment:
+              MASTER: master
+              PORT: 6379
+    redis-slave1:
+        image: lili/redis:1.0
+        restart: always
+        container_name: redis-slave1
+        ports:
+            - "6389:6389"
+        volumes:
+            - "/home/admin/data/redis/6389:/home/admin/data/redis/data"
+            - "/home/admin/logs/redis/6389:/home/admin/logs"
+        links:
+            - redis-master:redis-master
+        environment:
+            SLAVE: slave
+            SLAVE_OF: redis-master 6379
+            PORT: 6389
+    redis-slave2:
+        image: lili/redis:1.0
+        restart: always
+        container_name: redis-slave2
+        ports:
+              - "6399:6399"
+        volumes:
+              - "/home/admin/data/redis/6399:/home/admin/data/redis/data"
+              - "/home/admin/logs/redis/6399:/home/admin/logs"
+        links:
+              - redis-master:redis-master
+        environment:
+            SLAVE: slave
+            SLAVE_OF: redis-master 6379
+            PORT: 6399
+    sentinel1:
+        image: lili/redis:1.0
+        restart: always
+        container_name: sentinel1
+        ports:
+             - "26379:26379"
+        volumes:
+             - "/home/admin/data/redis/26379:/home/admin/data/redis/data"
+             - "/home/admin/logs/redis/26379:/home/admin/logs"
+        environment:
+            SENTINEL: sentinel
+            MASTER_INFO: redis-master 6379
+            PORT: 26379
+        links:
+          - redis-master:redis-master
+          - redis-slave1
+          - redis-slave2
+    sentinel2:
+        image: lili/redis:1.0
+        restart: always
+        container_name: sentinel2
+        ports:
+               - "26389:26389"
+        volumes:
+              - "/home/admin/data/redis/26389:/home/admin/data/redis/data"
+              - "/home/admin/logs/redis/26389:/home/admin/logs"
+        environment:
+            SENTINEL: sentinel
+            MASTER_INFO: redis-master 6379
+            PORT: 26389
+        links:
+          - redis-master:redis-master
+          - redis-slave1
+          - redis-slave2
+    sentinel3:
+        image: lili/redis:1.0
+        restart: always
+        container_name: sentinel3
+        ports:
+            - "26399:26399"
+        volumes:
+            - "/home/admin/data/redis/26399:/home/admin/data/redis/data"
+            - "/home/admin/logs/redis/26399:/home/admin/logs"
+        environment:
+            SENTINEL: sentinel
+            MASTER_INFO: redis-master 6379
+            PORT: 26399
+        links:
+          - redis-master:redis-master
+          - redis-slave1
+          - redis-slave2
+    etcd0:
+        image: lili/etcd:1.0
+        ports:
+          - "2379:2379"
+        container_name: etcd0
+        volumes:
+          - "/home/admin/data/etcd/2379:/home/admin/data/etcd"
+        environment:
+          - ETCDCTL_API=3
+        restart: always
+        command:
+          - /usr/bin/etcd
+          - -name
+          - etcd0
+          - --data-dir
+          - /home/admin/data/etcd/data
+          - -advertise-client-urls
+          - http://etcd0:2379
+          - -listen-client-urls
+          - http://0.0.0.0:2379
+          - -initial-advertise-peer-urls
+          - http://etcd0:2380
+          - -listen-peer-urls
+          - http://0.0.0.0:2380
+          - -initial-cluster
+          - etcd0=http://etcd0:2380,etcd1=http://etcd1:2370,etcd2=http://etcd2:2360
+    etcd1:
+        image: lili/etcd:1.0
+        ports:
+          - "2369:2369"
+        container_name: etcd1
+        volumes:
+          - "/home/admin/data/etcd/2369:/home/admin/data/etcd"
+        environment:
+          - ETCDCTL_API=3
+        restart: always
+        command:
+          - /usr/bin/etcd
+          - -name
+          - etcd1
+          - --data-dir
+          - /home/admin/data/etcd/data
+          - -advertise-client-urls
+          - http://etcd1:2369
+          - -listen-client-urls
+          - http://0.0.0.0:2369
+          - -initial-advertise-peer-urls
+          - http://etcd1:2370
+          - -listen-peer-urls
+          - http://0.0.0.0:2370
+          - -initial-cluster
+          - etcd0=http://etcd0:2380,etcd1=http://etcd1:2370,etcd2=http://etcd2:2360
+    etcd2:
+        image: lili/etcd:1.0
+        ports:
+          - "2359:2359"
+        container_name: etcd2
+        volumes:
+          - "/home/admin/data/etcd/2359:/home/admin/data/etcd"
+        environment:
+          - ETCDCTL_API=3
+        restart: always
+        command:
+          - /usr/bin/etcd
+          - -name
+          - etcd2
+          - --data-dir
+          - /home/admin/data/etcd/data
+          - -advertise-client-urls
+          - http://etcd2:2359
+          - -listen-client-urls
+          - http://0.0.0.0:2359
+          - -initial-advertise-peer-urls
+          - http://etcd2:2360
+          - -listen-peer-urls
+          - http://0.0.0.0:2360
+          - -initial-cluster
+          - etcd0=http://etcd0:2380,etcd1=http://etcd1:2370,etcd2=http://etcd2:2360
+    tiger1:
+        image: lili/tiger:1.0
+        restart: always
+        ports:
+            - "9666:9666"
+        container_name: tiger1
+        environment:
+            - ETCD_ENDPOINTS=http://etcd0:2379,etcd1:2369,etcd2:2359
+            - RABBITMQ_ENDPOINTS=rabbit1:5672,rabbit2:5673,rabbit3:5674
+            - REDIS_ENDPOINTS=sentinel1:26379,sentinel2:26389,sentinel3:26399
+            - MONGODB_ENDPOINTS=mongodb://mongo-router-1:27017,mongo-router-2:27017,mongo-router-3:27017
+            - REDIS_PORT=23679
+            - NODE_NAME=tiger1
+            - NODE_PORT=9666
+            - VIP_SERVER_LIST=http://127.0.0.1:80
+        volumes:
+          - "/home/admin/logs/tiger/9666:/home/admin/app/tiger/logs"
+    tiger2:
+        image: lili/tiger:1.0
+        restart: always
+        ports:
+            - "9667:9667"
+        container_name: tiger2
+        environment:
+            - ETCD_ENDPOINTS=http://etcd0:2379,etcd1:2369,etcd2:2359
+            - RABBITMQ_ENDPOINTS=rabbit1:5672,rabbit2:5673,rabbit3:5674
+            - REDIS_ENDPOINTS=sentinel1:26379,sentinel2:26389,sentinel3:26399
+            - MONGODB_ENDPOINTS=mongodb://mongo-router-1:27017,mongo-router-2:27017,mongo-router-3:27017
+            - REDIS_PORT=23679
+            - NODE_NAME=tiger2
+            - NODE_PORT=9667
+            - VIP_SERVER_LIST=http://127.0.0.1:80
+        volumes:
+          - "/home/admin/logs/tiger/9667:/home/admin/app/tiger/logs"
+    tiger3:
+        image: lili/tiger:1.0
+        restart: always
+        ports:
+            - "9668:9668"
+        container_name: tiger3
+        environment:
+           - ETCD_ENDPOINTS=http://etcd0:2379,etcd1:2369,etcd2:2359
+           - RABBITMQ_ENDPOINTS=rabbit1:5672,rabbit2:5673,rabbit3:5674
+           - REDIS_ENDPOINTS=sentinel1:26379,sentinel2:26389,sentinel3:26399
+           - MONGODB_ENDPOINTS=mongodb://mongo-router-1:27017,mongo-router-2:27017,mongo-router-3:27017
+           - REDIS_PORT=23679
+           - NODE_NAME=tiger3
+           - NODE_PORT=9668
+           - VIP_SERVER_LIST=http://127.0.0.1:80
+        volumes:
+          - "/home/admin/logs/tiger/9668:/home/admin/app/tiger/logs"
+networks:
+    default:
+        external:
+          name: lili-bridge-network
