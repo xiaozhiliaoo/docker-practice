@@ -1,0 +1,4 @@
+BEFOR_APP_KEY .*?,appKey=
+TIME_NLS \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}
+WORD_NLS [\w\-\_]*
+WORD_WITHOUT_VERTICAL [^\|]*

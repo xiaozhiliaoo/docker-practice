@@ -1,0 +1,77 @@
+version: '3'
+services:
+  monitor:
+    build: ./monitor
+    image: monitor
+    restart: always
+    container_name: monitor
+    ports:
+      - "8011:8011"
+#    volumes:
+#      - "/home/admin/logs/monitor:/home/admin/logs"
+    environment:
+      KAFKA_IP: kafka:9092
+      PORT: 8011
+    depends_on:
+      - kafka
+  kafka:
+    build: ./kafka
+    image: kafka
+    restart: always
+    container_name: kafka
+    ports:
+      - "9092:9092"
+#    volumes:
+#      - "/home/admin/logs/kafka:/home/admin/logs"
+    environment:
+      BROKER_ID: 1
+      LOG_DIRS: /home/admin/logs/
+      SERVER_PORT: 9092
+      SERVER_IP: kafka
+      ZOOKEEPER_CONNECT: zookeeper:2181
+      LOG_RETENTION_MINUTES: 30
+      LOG_DELETE_DELAY: 172800000
+    depends_on:
+      - zookeeper
+  zookeeper:
+    build: ./zookeeper
+    image: zookeeper
+    restart: always
+    container_name: zookeeper
+#    volumes:
+#      - "/home/admin/logs/kafka:/home/admin/logs"
+#      - "/home/admin/data/kafka:/home/admin/data"
+    environment:
+      ZOO_DATA_DIR: /home/admin/data/
+      ZOO_DATA_LOG_DIR: /home/admin/logs/
+      ZOO_PORT: 2181
+      ZOO_MY_ID: 1
+  update:
+    build: ./update
+    image: update
+    restart: always
+    container_name: update
+    ports:
+      - "8012:8012"
+#    volumes:
+#      - "/home/admin/logs/update:/home/admin/logs"
+#      - "/home/admin/data/update:/home/admin/data"
+    environment:
+      PORT: 8012
+      DB_URL: anno.coronadb.alibaba.net:3306
+      DB_USERNAME: ANIMUS_APP
+      DB_PASSWORD: 
+      DOWNLOAD_PREFIX: 127.0.0.1:8012
+  logstash:
+    build: ./logstash
+    image: logstash
+    restart: always
+    container_name: logstash
+    ports:
+      - "5044:5044"
+#    volumes:
+#      - "/home/admin/logs/logstash:/home/admin/logs"
+    environment:
+      LOGSTASH_LISTEN_PORT: 5044
+      LOGSTASH_TOPIC_NAME: device_info
+      LOGSTASH_KAFKA_ADDRESS: kafka:9092

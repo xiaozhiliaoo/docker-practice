@@ -1,0 +1,42 @@
+version: '3'
+services:
+  zookeeper1:
+    build: ./zookeeper
+    image: zookeeper-cluster
+    restart: always
+    container_name: zookeeper1
+    ports:
+      - "2181:2181"
+    volumes:
+      - "/Users/lili/docker/data/zookeeper1:/home/admin/data"
+      - "/Users/lili/docker/logs/zookeeper1:/home/admin/logs"
+    environment:
+      ZOO_SERVERS: server.1=127.0.0.1:2886:3886 server.2=127.0.0.1:2887:3887 server.3=127.0.0.1:2888:3888
+      ZOO_MY_ID: 1
+  zookeeper2:
+    build: ./zookeeper
+    image: zookeeper-cluster
+    restart: always
+    container_name: zookeeper2
+    ports:
+      - "2182:2181"
+    volumes:
+      - "/Users/lili/docker/data/zookeeper2:/home/admin/data"
+      - "/Users/lili/docker/logs/zookeeper2:/home/admin/logs"
+    environment:
+      ZOO_SERVERS: server.1=127.0.0.1:2886:3886 server.2=127.0.0.1:2887:3887 server.3=127.0.0.1:2888:3888
+      ZOO_MY_ID: 2
+  zookeeper3:
+    build: ./zookeeper
+    image: zookeeper-cluster
+    restart: always
+    container_name: zookeeper3
+    ports:
+      - "2183:2181"
+    volumes:
+      - "/Users/lili/docker/data/zookeeper3:/home/admin/data"
+      - "/Users/lili/docker/logs/zookeeper3:/home/admin/logs"
+    environment:
+      ZOO_SERVERS: server.1=127.0.0.1:2886:3886 server.2=127.0.0.1:2887:3887 server.3=127.0.0.1:2888:3888
+      ZOO_MY_ID: 3
+

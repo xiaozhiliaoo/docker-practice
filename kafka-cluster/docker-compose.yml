@@ -1,0 +1,42 @@
+version: '3'
+services:
+  kafaka1:
+    build: ./kafka
+    image: kafaka-cluster
+    restart: always
+    container_name: kafaka1
+    ports:
+      - "9091:9092"
+    volumes:
+      - "/Users/lili/docker/logs/kafaka1:/home/admin/logs"
+    environment:
+      ZOOKEEPER_CONNECT: 127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183
+      ZOOKEEPER_IP: 127.0.0.1
+      ZOOKEEPER_PORT: 9092
+  kafaka2:
+    build: ./kafaka
+    image: kafaka-cluster
+    restart: always
+    container_name: kafaka2
+    ports:
+      - "9092:9092"
+    volumes:
+      - "/Users/lili/docker/logs/kafaka2:/home/admin/logs"
+    environment:
+      ZOOKEEPER_CONNECT: 127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183
+      ZOOKEEPER_IP: 127.0.0.1
+      ZOOKEEPER_PORT: 9092
+  kafaka3:
+    build: ./kafaka
+    image: kafaka-cluster
+    restart: always
+    container_name: kafaka3
+    ports:
+      - "9093:9092"
+    volumes:
+      - "/Users/lili/docker/logs/kafaka3:/home/admin/logs"
+    environment:
+      ZOOKEEPER_CONNECT: 127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183
+      ZOOKEEPER_IP: 127.0.0.1
+      ZOOKEEPER_PORT: 9092
+

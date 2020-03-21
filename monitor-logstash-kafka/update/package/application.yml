@@ -1,0 +1,36 @@
+server:
+  port: replace_server_port
+  tomcat:
+    basedir: /home/admin/data/tmp
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
+spring:
+  aop:
+    auto: true
+  datasource:
+    url: jdbc:mysql://replace_datesource_database_url/replace_datesource_database_username?characterEncoding=UTF-8&useTimezone=true&serverTimezone=PRC&zeroDateTimeBehavior=convertToNull
+    username: replace_datesource_database_username
+    password: replace_datesource_database_password
+    driver-class-name: com.mysql.jdbc.Driver
+    type: org.apache.commons.dbcp2.BasicDataSource
+    max-wait-millis: 10000
+    dbcp2:
+      min-idle: 2
+      initial-size: 2
+      validation-query: SELECT 1
+      connection-properties: characterEncoding=utf8
+
+cron: "0 */5 * * * *"
+
+common:
+  downloadUrlPrefix: http://update/download/
+  downloadConcurrency: 5
+  downloadRateLimit: 102400
+  downloadRateLimitCheckSizeInterval: 102400
+  downloadRateLimitCheckTimeInterval: 1000
+  downloadRateLimitSleepMinMs: 10
+  maxFileSize: 500MB
+  maxRequestSize: 500MB
